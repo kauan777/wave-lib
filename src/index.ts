@@ -11,3 +11,9 @@ export {
   UpdateFrequency,
 } from './constants';
 export { useAudioPermission, useAudioPlayer } from './hooks';
+export {
+  cleanExpiredAudioCache,
+  getTotalAudioCacheSize,
+  cleanAllAudioCache,
+  addCacheEventListener,
+} from './utils/cacheManager';
