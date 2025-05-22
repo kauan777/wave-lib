@@ -39,6 +39,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint 'src/**/*.{js,jsx,ts,tsx}' -c .eslintrc --fix ",
     "build:local": "yarn build && yarn pack",
+    "build:export": "node export.js",
     "test": "jest",
     "example": "yarn --cwd example"
   },
