@@ -180,7 +180,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
       if (fileExists) {
         setExternalAudioPath(filePath);
-        return true;
+        return Promise.resolve(true);
       }
 
       // File doesn't exist, download it
