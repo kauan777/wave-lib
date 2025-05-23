@@ -119,6 +119,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     useAudioRecorder();
 
   const { checkHasAudioRecorderPermission } = useAudioPermission();
+  const [hasDownloaded, setHasDownloaded] = useState(false);
 
   /**
    * Updates the playback speed of the audio player.
@@ -180,6 +181,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
       if (fileExists) {
         setExternalAudioPath(filePath);
+        setHasDownloaded(true);
         return Promise.resolve(true);
       }
 
@@ -216,6 +218,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     const filePath: string = `${cacheDir}/${fileName}`;
     const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
     if (fileExists) {
+      setHasDownloaded(true);
       setExternalAudioPath(filePath);
     }
   };
@@ -235,11 +238,12 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
   useEffect(() => {
     if (audioPath) {
+      const timeout = hasDownloaded ? 350 : 0;
       setTimeout(() => {
         calculateLayout();
-      }, 350);
+      }, timeout);
     }
-  }, [audioPath]);
+  }, [audioPath, hasDownloaded]);
 
   const preparePlayerForPath = async (progress?: number) => {
     if (!isNil(audioPath) && !isEmpty(audioPath)) {
@@ -694,9 +698,10 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => {
         if (!isLayoutCalculated.current) {
+          const timeout = hasDownloaded ? 150 : 0;
           setTimeout(() => {
             calculateLayout();
-          }, 150);
+          }, timeout);
         }
 
         return true;
