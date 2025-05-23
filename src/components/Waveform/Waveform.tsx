@@ -235,7 +235,9 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
   useEffect(() => {
     if (audioPath) {
-      calculateLayout();
+      setTimeout(() => {
+        calculateLayout();
+      }, 350);
     }
   }, [audioPath]);
 
@@ -692,7 +694,9 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => {
         if (!isLayoutCalculated.current) {
-          calculateLayout();
+          setTimeout(() => {
+            calculateLayout();
+          }, 150);
         }
 
         return true;
@@ -748,7 +752,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       <View
         ref={viewRef}
         style={styles.waveformInnerContainer}
-        onLayout={calculateLayout}
+        onLayout={!isExternalUrl ? calculateLayout : undefined}
         {...(mode === 'static' ? panResponder.panHandlers : {})}>
         <ScrollView
           horizontal
