@@ -221,7 +221,7 @@ import {
   getTotalAudioCacheSize,
   cleanAllAudioCache,
   addCacheEventListener,
-} from '@simform_solutions/react-native-audio-waveform/src/utils/cacheManager'; // Adjust path if necessary based on your project structure
+} from '@simform_solutions/react-native-audio-waveform';
 ```
 
 #### `cleanExpiredAudioCache(expirationTime: number): Promise<void>`
@@ -235,7 +235,7 @@ import { useEffect } from 'react';
 import {
   cleanExpiredAudioCache,
   getTotalAudioCacheSize,
-} from '@simform_solutions/react-native-audio-waveform/src/utils/cacheManager'; // Adjust path if necessary
+} from '@simform_solutions/react-native-audio-waveform';
 
 // Define the expiration time, e.g., 24 hours in milliseconds
 const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
