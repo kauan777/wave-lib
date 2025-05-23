@@ -33,6 +33,7 @@ export interface StaticWaveform extends BaseWaveform {
   playbackSpeed?: PlaybackSpeedType;
   onDownloadingStateChange?: (state: boolean) => void;
   onDownloadProgressChange?: (currentProgress: number) => void;
+  onGetDuration?: (duration: number) => void;
 }
 
 export interface LiveWaveform extends BaseWaveform {

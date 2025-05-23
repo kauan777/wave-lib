@@ -75,6 +75,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     onChangeWaveformLoadState,
     onDownloadingStateChange,
     onDownloadProgressChange,
+    onGetDuration = (_duration: number) => {},
   } = props as StaticWaveform & LiveWaveform;
   const viewRef = useRef<View>(null);
   const [audioPath, setAudioPath] = useState<string | undefined>(
@@ -252,6 +253,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       if (!isNil(duration)) {
         const audioDuration = Number(duration);
         setSongDuration(audioDuration > 0 ? audioDuration : 0);
+        onGetDuration?.(audioDuration > 0 ? audioDuration : 0);
         return Promise.resolve(audioDuration);
       } else {
         return Promise.reject(
@@ -597,6 +599,10 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       return () => {
         tracePlayerState.remove();
         tracePlaybackValue.remove();
+        stopPlayer({
+          playerKey: `PlayerFor${audioPath}`,
+        }).catch(() => {});
+        stopRecording().catch(() => {});
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
