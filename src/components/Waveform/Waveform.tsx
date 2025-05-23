@@ -179,6 +179,8 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     try {
       const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
 
+      console.log('TEST: ', fileExists, fileName);
+
       if (fileExists) {
         setExternalAudioPath(filePath);
         setHasDownloaded(true);
@@ -207,6 +209,12 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
           console.error(error);
           (onDownloadingStateChange as Function)?.(false);
           return Promise.resolve(false);
+        })
+        .finally(() => {
+          const timeout = 300;
+          setTimeout(() => {
+            calculateLayout();
+          }, timeout);
         });
     } catch (error) {
       console.error(error);
@@ -698,10 +706,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     PanResponder.create({
       onStartShouldSetPanResponder: () => {
         if (!isLayoutCalculated.current) {
-          const timeout = hasDownloaded ? 150 : 0;
-          setTimeout(() => {
-            calculateLayout();
-          }, timeout);
+          calculateLayout();
         }
 
         return true;
