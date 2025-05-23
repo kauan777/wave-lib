@@ -170,7 +170,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     });
   };
 
-  const downloadAndCacheFile = useCallback(async (): Promise<boolean> => {
+  const downloadAndCacheFile = async (): Promise<boolean> => {
     const fileUrl: string = path;
     const fileName: string = formatUrlToFileName(path);
     const filePath: string = `${cacheDir}/${fileName}`;
@@ -180,7 +180,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
       if (fileExists) {
         setExternalAudioPath(filePath);
-        return Promise.resolve(true);
+        return true;
       }
 
       // File doesn't exist, download it
@@ -210,23 +210,15 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       console.error(error);
       return Promise.resolve(false);
     }
-  }, [
-    path,
-    onDownloadingStateChange,
-    onDownloadProgressChange,
-    setExternalAudioPath,
-  ]);
+  };
 
-  const checkIsFileDownloaded = useCallback(
-    async (fileName: string): Promise<void> => {
-      const filePath: string = `${cacheDir}/${fileName}`;
-      const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
-      if (fileExists) {
-        setExternalAudioPath(filePath);
-      }
-    },
-    [setExternalAudioPath]
-  );
+  const checkIsFileDownloaded = async (fileName: string): Promise<void> => {
+    const filePath: string = `${cacheDir}/${fileName}`;
+    const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
+    if (fileExists) {
+      setExternalAudioPath(filePath);
+    }
+  };
 
   useEffect(() => {
     const fileName: string = formatUrlToFileName(path);
@@ -243,10 +235,9 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
   useEffect(() => {
     if (audioPath) {
-      console.log('calculateLayout');
       calculateLayout();
     }
-  }, [audioPath, downloadAndCacheFile, checkIsFileDownloaded]);
+  }, [audioPath]);
 
   const preparePlayerForPath = async (progress?: number) => {
     if (!isNil(audioPath) && !isEmpty(audioPath)) {
