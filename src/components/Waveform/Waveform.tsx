@@ -9,6 +9,7 @@ import React, {
   useImperativeHandle,
   useRef,
   useState,
+  useCallback,
 } from 'react';
 import {
   PanResponder,
@@ -141,12 +142,15 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioSpeed, audioPath]);
 
-  const setExternalAudioPath = (filePath: string): void => {
-    setAudioPath(filePath);
-    audioPathRef.current = filePath;
-    (onDownloadingStateChange as Function)?.(false);
-    (onDownloadProgressChange as Function)?.(100);
-  };
+  const setExternalAudioPath = useCallback(
+    (filePath: string): void => {
+      setAudioPath(filePath);
+      audioPathRef.current = filePath;
+      (onDownloadingStateChange as Function)?.(false);
+      (onDownloadProgressChange as Function)?.(100);
+    },
+    [onDownloadingStateChange, onDownloadProgressChange]
+  );
 
   // Replace special characters with _ and remove extension from the URL and make file name lowercase
   const formatUrlToFileName = (url: string): string => {
@@ -156,11 +160,17 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       ?.toLowerCase?.();
   };
 
-  /**
-   * Downloads the audio file and caches it.
-   * @returns A promise that resolves to a boolean indicating if the download and cache operation was successful.
-   */
-  const downloadAndCacheFile = async (): Promise<boolean> => {
+  const calculateLayout = (): void => {
+    viewRef.current?.measureInWindow((x, y, width, height) => {
+      setViewLayout({ x, y, width, height });
+      if (x !== 0 || y !== 0) {
+        // found the position of view in window
+        isLayoutCalculated.current = true;
+      }
+    });
+  };
+
+  const downloadAndCacheFile = useCallback(async (): Promise<boolean> => {
     const fileUrl: string = path;
     const fileName: string = formatUrlToFileName(path);
     const filePath: string = `${cacheDir}/${fileName}`;
@@ -200,15 +210,23 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       console.error(error);
       return Promise.resolve(false);
     }
-  };
+  }, [
+    path,
+    onDownloadingStateChange,
+    onDownloadProgressChange,
+    setExternalAudioPath,
+  ]);
 
-  const checkIsFileDownloaded = async (fileName: string): Promise<void> => {
-    const filePath: string = `${cacheDir}/${fileName}`;
-    const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
-    if (fileExists) {
-      setExternalAudioPath(filePath);
-    }
-  };
+  const checkIsFileDownloaded = useCallback(
+    async (fileName: string): Promise<void> => {
+      const filePath: string = `${cacheDir}/${fileName}`;
+      const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
+      if (fileExists) {
+        setExternalAudioPath(filePath);
+      }
+    },
+    [setExternalAudioPath]
+  );
 
   useEffect(() => {
     const fileName: string = formatUrlToFileName(path);
@@ -222,6 +240,13 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExternalUrl, path, autoDownloadExternalAudio]);
+
+  useEffect(() => {
+    if (audioPath) {
+      console.log('calculateLayout');
+      calculateLayout();
+    }
+  }, [audioPath, downloadAndCacheFile, checkIsFileDownloaded]);
 
   const preparePlayerForPath = async (progress?: number) => {
     if (!isNil(audioPath) && !isEmpty(audioPath)) {
@@ -671,16 +696,6 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panMoving, audioPath]);
-
-  const calculateLayout = (): void => {
-    viewRef.current?.measureInWindow((x, y, width, height) => {
-      setViewLayout({ x, y, width, height });
-      if (x !== 0 || y !== 0) {
-        // found the position of view in window
-        isLayoutCalculated.current = true;
-      }
-    });
-  };
 
   const panResponder = useRef(
     PanResponder.create({
