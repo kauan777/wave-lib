@@ -163,7 +163,7 @@ You can check out the full example at [Example](./example/src/App.tsx).
 | playbackSpeed             | 1.0         | ✅              | ❌            | 1.0 / 1.5 / 2.0                                            | The playback speed of the audio player. Note: Currently playback speed only supports, Normal (1x) Faster(1.5x) and Fastest(2.0x), any value passed to playback speed greater than 2.0 will be automatically adjusted to normal playback speed   |
 | volume                    | 3           | ✅              | ❌            | number                                                     | Used for `static` type. It is a volume level for the media player, ranging from 1 to 10.                                                                                                                                                        |
 | isExternalUrl             | false       | ✅              | ❌            | boolean                                                    | Used for `static` type. If the resource path of an audio file is a URL, then pass true; otherwise, pass false.                                                                                                                                  |
-| autoDownloadExternalAudio     | false        | ✅              | ❌            | boolean                                                    | Used for `static` type. Indicates whether the external media should be auto downloaded or not.                                                                                                                                                              |
+| autoDownloadExternalAudio | false       | ✅              | ❌            | boolean                                                    | Used for `static` type. Indicates whether the external media should be auto downloaded or not.                                                                                                                                                  |
 | candleSpace               | 2           | ✅              | ✅            | number                                                     | Space between two candlesticks of waveform                                                                                                                                                                                                      |
 | candleWidth               | 5           | ✅              | ✅            | number                                                     | Width of single candlestick of waveform                                                                                                                                                                                                         |
 | candleHeightScale         | 3           | ✅              | ✅            | number                                                     | Scaling height of candlestick of waveform                                                                                                                                                                                                       |
@@ -176,11 +176,151 @@ You can check out the full example at [Example](./example/src/App.tsx).
 | onRecorderStateChange     | -           | ❌              | ✅            | ( recorderState : RecorderState ) => void                  | callback function which returns the recorder state whenever the recorder state changes. Check RecorderState for more details                                                                                                                    |
 | onCurrentProgressChange   | -           | ✅              | ❌            | ( currentProgress : number, songDuration: number ) => void | callback function, which returns current progress of audio and total song duration.                                                                                                                                                             |
 | onChangeWaveformLoadState | -           | ✅              | ❌            | ( state : boolean ) => void                                | callback function which returns the loading state of waveform candlestick.                                                                                                                                                                      |
-| onDownloadingStateChange     | -           | ✅              | ❌            | ( state : boolean ) => void                                | A callback function that returns the loading state of a file download from an external URL.                                                                                                                                                     |
+| onDownloadingStateChange  | -           | ✅              | ❌            | ( state : boolean ) => void                                | A callback function that returns the loading state of a file download from an external URL.                                                                                                                                                     |
 | onDownloadProgressChange  | -           | ✅              | ❌            | ( currentProgress : number ) => void                       | Used when isExternalUrl is true; a callback function that returns the current progress of a file download from an external URL                                                                                                                  |
 | onError                   | -           | ✅              | ❌            | ( error : Error ) => void                                  | callback function which returns the error for static audio waveform                                                                                                                                                                             |
 
 ##### Know more about [ViewStyle](https://reactnative.dev/docs/view-style-props), [PlayerState](#playerstate), and [RecorderState](#recorderstate)
+
+---
+
+## Cache Management for External Audio Files
+
+The library provides caching capabilities when dealing with audio files from external URLs (when `isExternalUrl` is set to `true`). This helps in reducing network usage and improving loading times for frequently accessed audio files.
+
+### How Caching Works
+
+- **Cache Directory**: Audio files are cached in a platform-specific directory.
+  - iOS: `RNFetchBlob.fs.dirs.DocumentDir`
+  - Android: `RNFetchBlob.fs.dirs.CacheDir`
+- **Automatic Downloads**: If `autoDownloadExternalAudio` is set to `true` (defaults to `false`), the library will automatically attempt to download and cache the audio file specified in the `path` prop when the component mounts.
+- **Manual Downloads**: You can trigger the download and caching of an external audio file manually using the `downloadExternalAudio()` method available on the `Waveform` component's ref. This is useful if you want to control when the download occurs.
+  ```tsx
+  const waveformRef = useRef<IWaveformRef>(null);
+  // ...
+  const handleDownload = async () => {
+    if (waveformRef.current && waveformRef.current.downloadExternalAudio) {
+      const success = await waveformRef.current.downloadExternalAudio();
+      if (success) {
+        console.log('Audio downloaded and cached successfully!');
+      } else {
+        console.log('Audio download failed.');
+      }
+    }
+  };
+  ```
+- **File Naming**: External URLs are converted into valid filenames for storage by replacing special characters.
+
+### Cache Utility Functions
+
+The library also exports several utility functions from `src/utils/cacheManager.ts` that you can use to manage the audio cache. You can import these functions into your project:
+
+```ts
+import {
+  cleanExpiredAudioCache,
+  getTotalAudioCacheSize,
+  cleanAllAudioCache,
+  addCacheEventListener,
+} from '@simform_solutions/react-native-audio-waveform/src/utils/cacheManager'; // Adjust path if necessary based on your project structure
+```
+
+#### `cleanExpiredAudioCache(expirationTime: number): Promise<void>`
+
+Deletes audio files from the cache that were last modified longer ago than the `expirationTime` (in milliseconds).
+
+**Example:** Clean up expired audio files (e.g., older than 24 hours) and then log the current cache size, typically on app startup.
+
+````tsx
+import { useEffect } from 'react';
+import {
+  cleanExpiredAudioCache,
+  getTotalAudioCacheSize,
+} from '@simform_solutions/react-native-audio-waveform/src/utils/cacheManager'; // Adjust path if necessary
+
+// Define the expiration time, e.g., 24 hours in milliseconds
+const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
+
+const AudioCacheManager = () => {
+  useEffect(() => {
+    const manageCache = async () => {
+      try {
+        const hours = TWENTY_FOUR_HOURS_IN_MS / (60 * 60 * 1000);
+        console.log(`Attempting to clean audio files older than ${hours} hours.`);
+        await cleanExpiredAudioCache(TWENTY_FOUR_HOURS_IN_MS);
+        console.log('Expired audio cache cleanup complete.');
+
+        const totalSize = await getTotalAudioCacheSize();
+        console.log(`Current total audio cache size: ${totalSize} bytes.`);
+      } catch (error) {
+        console.error('Error managing audio cache:', error);
+      }
+    };
+
+    manageCache();
+  }, []);
+
+  // This component would typically be rendered once in your app, for example, in your main App component.
+  // It doesn't render any UI itself.
+  return null;
+};
+
+// To use it, you might include <AudioCacheManager /> in your main App component.
+
+#### `getTotalAudioCacheSize(): Promise<number>`
+
+Returns the total size (in bytes) of all audio files currently in the cache.
+
+**Example:**
+
+```tsx
+const checkCacheSize = async () => {
+  try {
+    const size = await getTotalAudioCacheSize();
+    console.log(`Total audio cache size: ${size} bytes`);
+  } catch (error) {
+    console.error('Failed to get total cache size:', error);
+  }
+};
+````
+
+#### `cleanAllAudioCache(): Promise<void>`
+
+Deletes all audio files from the cache, regardless of their age.
+
+**Example:** Provide a "Clear Cache" option in your app settings.
+
+```tsx
+const handleClearCache = async () => {
+  try {
+    await cleanAllAudioCache();
+    console.log('All audio cache cleared.');
+  } catch (error) {
+    console.error('Failed to clear all audio cache:', error);
+  }
+};
+```
+
+#### `addCacheEventListener(listener: (removedFilePath: string) => void): () => void`
+
+Adds an event listener that is called whenever an audio file is removed from the cache by one of the cleanup functions (`cleanExpiredAudioCache` or `cleanAllAudioCache`).
+The listener function receives the path of the removed file.
+This function returns an `unsubscribe` function to remove the listener.
+
+**Example:**
+
+```tsx
+useEffect(() => {
+  const handleCacheRemoval = (filePath: string) => {
+    console.log(`File removed from cache: ${filePath}`);
+  };
+
+  const unsubscribe = addCacheEventListener(handleCacheRemoval);
+
+  return () => {
+    unsubscribe(); // Clean up the listener when the component unmounts
+  };
+}, []);
+```
 
 ---
 
@@ -231,6 +371,14 @@ downloadExternalAudio(): Promise<boolean>
 ```
 
 It returns a boolean indicating whether download and cache operation was successful
+
+#### getDuration()
+
+```ts
+getDuration(): Promise<number>
+```
+
+Returns a promise that resolves with the duration of the audio file in milliseconds. This is only available in `static` mode.
 
 #### For Live mode
 
@@ -378,6 +526,57 @@ yarn
 yarn example ios // For iOS
 yarn example android // For Android
 ```
+
+## Integrating into Another Project (Development Workflow)
+
+If you are actively developing this library and want to test your local changes in another React Native project without publishing to npm, you can use the provided `build:export` script. This script builds the library, packs it, extracts it, and copies the relevant files to a target project directory.
+
+**Steps:**
+
+1.  **Configure the Target Path:**
+    Open the `export.js` file in the root of this library. Modify the `TARGET_PATH` constant to point to the `node_modules/@simform_solutions/react-native-audio-waveform` directory within your _other_ project where you want to use the local build.
+
+    ```javascript
+    // export.js
+    const TARGET_PATH =
+      '/path/to/your/other/project/node_modules/@simform_solutions/react-native-audio-waveform';
+    ```
+
+2.  **Run the Export Script:**
+    From the root of this library, run the following command:
+
+    ```bash
+    yarn build:export
+    # or
+    npm run build:export
+    ```
+
+    This will execute the script, and you should see the output files copied to your specified `TARGET_PATH`.
+
+3.  **Handling Local Modifications with Patches (Optional but Recommended):**
+    After exporting the library to your other project, you might make further modifications directly within that project's `node_modules/@simform_solutions/react-native-audio-waveform` directory for quick testing or specific adjustments.
+
+    If you run `yarn build:export` again, these direct modifications in the target project will be overwritten.
+
+    To persist these changes, it's highly recommended to use a tool like [`patch-package`](https://www.npmjs.com/package/patch-package). After making your desired changes in the target project's `node_modules` copy of this library:
+
+    - Install `patch-package` in your _other_ project: `yarn add patch-package postinstall-postinstall` (or npm equivalent).
+    - Add a postinstall script to your _other_ project's `package.json`:
+      ```json
+      "scripts": {
+        "postinstall": "patch-package"
+      }
+      ```
+    - Create a patch:
+      `bash
+      npx patch-package @simform_solutions/react-native-audio-waveform
+
+    # or
+
+    yarn patch-package @simform*solutions/react-native-audio-waveform
+    `  This will generate a`.patch`file in a`patches` directory in your \_other* project. Now, whenever you (or your teammates) run `yarn install` (or `npm install`), these patches will be automatically applied after the package is installed. This ensures your local modifications are not lost when you re-export the library or when others install the project dependencies.
+
+---
 
 ## Find this library useful? ❤️
 
