@@ -57,6 +57,7 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     maxCandlesToRender = 300,
     mode,
     path,
+    fileId,
     volume = 3,
     // The playback speed of the audio player. A value of 1.0 represents normal playback speed.
     playbackSpeed = 1.0,
@@ -161,6 +162,11 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
       ?.toLowerCase?.();
   };
 
+  // Get filename prioritizing key over formatted path
+  const getFileName = (): string => {
+    return `audio_${fileId}` || formatUrlToFileName(path);
+  };
+
   const calculateLayout = (): void => {
     viewRef.current?.measureInWindow((x, y, width, height) => {
       setViewLayout({ x, y, width, height });
@@ -173,13 +179,11 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
 
   const downloadAndCacheFile = async (): Promise<boolean> => {
     const fileUrl: string = path;
-    const fileName: string = formatUrlToFileName(path);
+    const fileName: string = getFileName();
     const filePath: string = `${cacheDir}/${fileName}`;
 
     try {
       const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
-
-      console.log('TEST: ', fileExists, fileName);
 
       if (fileExists) {
         setExternalAudioPath(filePath);
@@ -222,7 +226,8 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
     }
   };
 
-  const checkIsFileDownloaded = async (fileName: string): Promise<void> => {
+  const checkIsFileDownloaded = async (): Promise<void> => {
+    const fileName: string = getFileName();
     const filePath: string = `${cacheDir}/${fileName}`;
     const fileExists: boolean = await RNFetchBlob.fs.exists(filePath);
     if (fileExists) {
@@ -232,17 +237,15 @@ export const Waveform = forwardRef<IWaveformRef, IWaveform>((props, ref) => {
   };
 
   useEffect(() => {
-    const fileName: string = formatUrlToFileName(path);
-
     if (isExternalUrl && path && autoDownloadExternalAudio) {
       downloadAndCacheFile();
     } else if (isExternalUrl && path) {
-      checkIsFileDownloaded(fileName);
+      checkIsFileDownloaded();
     } else {
       (onDownloadingStateChange as Function)?.(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExternalUrl, path, autoDownloadExternalAudio]);
+  }, [isExternalUrl, path, fileId, autoDownloadExternalAudio]);
 
   useEffect(() => {
     if (audioPath) {

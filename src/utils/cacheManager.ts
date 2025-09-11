@@ -34,7 +34,10 @@ const notifyCacheListeners = (removedFilePath: string) => {
  * @returns boolean indicating if the file is an audio file
  */
 const isAudioFile = (fileName: string): boolean => {
-  return AUDIO_EXTENSIONS.some(ext => fileName.toLowerCase().endsWith(ext));
+  return (
+    AUDIO_EXTENSIONS.some(ext => fileName.toLowerCase().endsWith(ext)) ||
+    fileName.includes('audio')
+  );
 };
 
 /**
@@ -79,7 +82,6 @@ export const getTotalAudioCacheSize = async (): Promise<number> => {
   try {
     const files = await RNFetchBlob.fs.ls(cacheDir);
     const audioFiles = files.filter(file => isAudioFile(file));
-
     let totalSize = 0;
     for (const file of audioFiles) {
       const filePath = `${cacheDir}/${file}`;

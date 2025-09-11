@@ -18,6 +18,7 @@ interface BaseWaveform {
 export interface StaticWaveform extends BaseWaveform {
   mode: 'static';
   path: string;
+  fileId?: string;
   volume?: number;
   scrubColor?: string;
   isExternalUrl?: boolean;
